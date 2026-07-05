@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LAB 02 — AWS IoT Core : capteurlamp1 + simulation d’attaque</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #5b667a;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --accent: #ff9900;
+      --danger: #dc2626;
+      --success: #15803d;
+      --code-bg: #0f172a;
+      --code-text: #e5e7eb;
+      --border: #dbe3ef;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f172a, #0f766e);
+      color: white;
+      padding: 48px 24px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1.15;
+    }
+
+    header p {
+      max-width: 900px;
+      margin: 0 auto;
+      font-size: 18px;
+      opacity: 0.95;
+    }
+
+    .container {
+      width: min(1150px, 94%);
+      margin: 28px auto 60px;
+    }
+
+    .toc, .section, .step, .checklist {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+      padding: 26px;
+    }
+
+    .toc h2, .section h2 {
+      margin-top: 0;
+      color: var(--primary-dark);
+    }
+
+    .toc a {
+      display: inline-block;
+      margin: 6px 10px 6px 0;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #e6fffb;
+      color: var(--primary-dark);
+      text-decoration: none;
+      font-weight: 600;
+      border: 1px solid #b7ebe4;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: white;
+      font-weight: 800;
+    }
+
+    .step h3 {
+      margin-top: 0;
+      color: #0f172a;
+      font-size: 24px;
+    }
+
+    .objective, .important, .result, .warning {
+      padding: 14px 16px;
+      border-radius: 14px;
+      margin: 14px 0;
+      border-left: 5px solid;
+    }
+
+    .objective { background: #eff6ff; border-color: #2563eb; }
+    .important { background: #fff7ed; border-color: var(--accent); }
+    .result { background: #f0fdf4; border-color: var(--success); }
+    .warning { background: #fef2f2; border-color: var(--danger); }
+
+    code.inline {
+      background: #e8eef8;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-family: Consolas, monospace;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      border-radius: 14px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.55;
+      border: 1px solid #1e293b;
+    }
+
+    pre code { font-family: Consolas, "Courier New", monospace; }
+
+    ul, ol { padding-left: 24px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      overflow: hidden;
+      border-radius: 12px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eefdfb;
+      color: var(--primary-dark);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .mini-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+
+
+    .intro-lab {
+      background: linear-gradient(135deg, #ffffff, #f0fdfa);
+      border: 1px solid var(--border);
+      border-left: 8px solid var(--accent);
+    }
+
+    .intro-lead {
+      font-size: 18px;
+      color: var(--muted);
+      margin-top: 0;
+    }
+
+    .architecture {
+      margin: 22px 0;
+      padding: 22px;
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .arch-box {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      min-height: 125px;
+    }
+
+    .arch-box strong {
+      display: block;
+      color: var(--primary-dark);
+      font-size: 17px;
+      margin-bottom: 8px;
+    }
+
+    .arch-arrow {
+      font-size: 28px;
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .timeline-item {
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .timeline-item span {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-weight: 800;
+      margin-right: 8px;
+    }
+
+    .result-box {
+      background: #fffbeb;
+      border: 1px solid #facc15;
+      border-radius: 16px;
+      padding: 18px;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 850px) {
+      .arch-grid { grid-template-columns: 1fr; }
+      .arch-arrow { transform: rotate(90deg); text-align: center; }
+    }
+
+    .author-strip {
+      background: #ad8a21;
+      color: #ffffff;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255,255,255,0.20);
+      box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 30px;
+    }
+
+    @media print {
+      body { background: white; }
+      header { background: white; color: black; border-bottom: 2px solid #000; }
+      .toc, .section, .step, .checklist { box-shadow: none; break-inside: avoid; }
+      .toc a { border: 1px solid #aaa; }
+      pre { white-space: pre-wrap; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LAB 02 — AWS IoT Core</h1>
+    <p>Création du capteur <strong>capteurlamp1</strong>, configuration AWS IoT Core, fichiers Windows, script Python et simulation d’une attaque.</p>
+  </header>
+  <div class="author-strip">Pr. Azeddine KHIAT - HESTIM</div>
+
+  <main class="container">
+    <section class="toc">
+      <h2>Sommaire rapide</h2>
+      <a href="#presentation">Présentation du laboratoire</a>
+      <a href="#objectif">Objectif</a>
+      <a href="#partie-a">A — AWS IoT Core</a>
+      <a href="#partie-b">B — Certificat</a>
+      <a href="#partie-c">C — Policy</a>
+      <a href="#partie-d">D — Vérification</a>
+      <a href="#partie-e">E — Endpoint</a>
+      <a href="#partie-f">F — Windows</a>
+      <a href="#partie-g">G — Python</a>
+      <a href="#partie-h">H — config.json</a>
+      <a href="#partie-i">I — start.py</a>
+      <a href="#partie-j">J — Test MQTT</a>
+      <a href="#partie-k">K — Attaque</a>
+    </section>
+
+
+
+    <section id="presentation" class="section intro-lab">
+      <div class="section-title"><span class="badge">★</span><h2>Présentation du laboratoire</h2></div>
+      <p class="intro-lead">Ce laboratoire explique, étape par étape, comment créer un objet connecté dans <strong>AWS IoT Core</strong>, le connecter depuis Windows avec Python, publier des données MQTT, puis comprendre une attaque simple d'usurpation d'identité.</p>
+
+      <div class="grid">
+        <div class="mini-card"><strong>Objet simulé</strong><br><code class="inline">capteurlamp1</code></div>
+        <div class="mini-card"><strong>Topic MQTT</strong><br><code class="inline">lamp/temp</code></div>
+        <div class="mini-card"><strong>Connexion</strong><br>MQTT sécurisé par TLS/mTLS sur le port <code class="inline">8883</code></div>
+        <div class="mini-card"><strong>Attaque simulée</strong><br>Envoi d'une température anormale : <code class="inline">-99.99 °C</code></div>
+      </div>
+
+      <div class="architecture">
+        <h3>Architecture du laboratoire</h3>
+        <div class="arch-grid">
+          <div class="arch-box">
+            <strong>Windows</strong>
+            Script Python<br><code class="inline">start.py</code><br>Capteur <code class="inline">capteurlamp1</code>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box">
+            <strong>AWS IoT Core</strong>
+            Broker MQTT sécurisé<br>Certificat X.509<br>Policy IoT
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box">
+            <strong>MQTT Test Client</strong>
+            Abonnement au topic<br><code class="inline">lamp/temp</code><br>Observation des messages
+          </div>
+        </div>
+        <div class="result-box">
+          <strong>Scénario de sécurité :</strong> un attaquant copie les mêmes certificats et utilise le même <code class="inline">client_id</code>. AWS croit alors qu'il s'agit du vrai capteur. Le TP permet de comprendre pourquoi la protection des certificats et des clés privées est essentielle.
+        </div>
+      </div>
+
+      <h3>Déroulement du TP</h3>
+      <div class="timeline">
+        <div class="timeline-item"><span>1</span>Créer le Thing dans AWS IoT Core.</div>
+        <div class="timeline-item"><span>2</span>Générer le certificat X.509.</div>
+        <div class="timeline-item"><span>3</span>Créer et attacher la Policy IoT.</div>
+        <div class="timeline-item"><span>4</span>Préparer les dossiers Windows.</div>
+        <div class="timeline-item"><span>5</span>Créer <code class="inline">config.json</code> et <code class="inline">start.py</code>.</div>
+        <div class="timeline-item"><span>6</span>Tester avec MQTT Test Client.</div>
+        <div class="timeline-item"><span>7</span>Créer <code class="inline">attacker.py</code> et simuler l'attaque.</div>
+        <div class="timeline-item"><span>8</span>Analyser pourquoi l'attaque fonctionne.</div>
+      </div>
+    </section>
+
+    <section id="objectif" class="section">
+      <div class="section-title"><span class="badge">0</span><h2>Objectif du TP</h2></div>
+      <p>Créer un capteur IoT simulé sous Windows nommé :</p>
+      <pre><code>capteurlamp1</code></pre>
+      <p>Le capteur va envoyer des températures vers AWS IoT Core sur le topic :</p>
+      <pre><code>lamp/temp</code></pre>
+      <p>Ensuite, on simule une attaque avec un deuxième script Python qui envoie une fausse température :</p>
+      <pre><code>-99.99 °C</code></pre>
+    </section>
+
+    <section id="partie-a" class="section">
+      <div class="section-title"><span class="badge">A</span><h2>Création dans AWS IoT Core</h2></div>
+
+      <div class="step">
+        <h3>Étape 1 — Vérifier la région AWS</h3>
+        <div class="important"><strong>Région à utiliser :</strong> <code class="inline">us-east-1</code></div>
+        <p>En haut à droite de la console AWS, vérifier que tu es bien dans :</p>
+        <pre><code>États-Unis Est (Virginie du Nord) / us-east-1</code></pre>
+        <div class="warning">Tous les éléments du TP doivent être créés dans cette même région.</div>
+      </div>
+
+      <div class="step">
+        <h3>Étape 2 — Ouvrir AWS IoT Core</h3>
+        <p>Dans la console AWS :</p>
+        <pre><code>Barre de recherche
+→ taper IoT Core
+→ cliquer sur AWS IoT</code></pre>
+        <div class="result">Tu dois arriver sur la page : <strong>AWS IoT — Connecter, tester et gérer vos appareils IoT en toute sécurité</strong>.</div>
+      </div>
+
+      <div class="step">
+        <h3>Étape 3 — Créer le Thing capteurlamp1</h3>
+        <p>Dans le menu gauche :</p>
+        <pre><code>Gérer
+→ Tous les appareils
+→ Objets / Things</code></pre>
+        <p>Puis cliquer sur :</p>
+        <pre><code>Créer des objets</code></pre>
+        <p>Choisir :</p>
+        <pre><code>Créer un seul objet</code></pre>
+        <p>Puis cliquer sur :</p>
+        <pre><code>Suivant</code></pre>
+        <p>Remplir :</p>
+        <pre><code>Nom de l’objet / Thing name : capteurlamp1</code></pre>
+        <p>Laisser le reste vide :</p>
+        <pre><code>Type d’objet : vide
+Groupe : vide
+Attributs : vide</code></pre>
+        <p>Cliquer sur :</p>
+        <pre><code>Suivant</code></pre>
+      </div>
+    </section>
+
+    <section id="partie-b" class="section">
+      <div class="section-title"><span class="badge">B</span><h2>Création du certificat</h2></div>
+      <div class="step">
+        <h3>Étape 4 — Générer le certificat</h3>
+        <p>Dans l’assistant AWS, choisir :</p>
+        <pre><code>Créer automatiquement un nouveau certificat</code></pre>
+        <p>Puis cliquer sur :</p>
+        <pre><code>Suivant</code></pre>
+        <p>AWS génère les fichiers de sécurité. Télécharger obligatoirement :</p>
+        <ul>
+          <li>Device certificate</li>
+          <li>Private key</li>
+          <li>Public key</li>
+          <li>Amazon Root CA 1</li>
+        </ul>
+        <div class="warning"><strong>Très important :</strong> la clé privée ne pourra plus être téléchargée après.</div>
+      </div>
+    </section>
+
+    <section id="partie-c" class="section">
+      <div class="section-title"><span class="badge">C</span><h2>Créer la Policy AWS IoT</h2></div>
+      <div class="step">
+        <h3>Étape 5 — Créer une Policy simple</h3>
+        <p>Dans l’assistant, cliquer sur :</p>
+        <pre><code>Créer une policy</code></pre>
+        <p>Nom de la policy :</p>
+        <pre><code>Lab08PolicyCapteurLamp</code></pre>
+        <p>Coller cette policy. Remplacer <code class="inline">ACCOUNT_ID</code> par le numéro de compte AWS Academy.</p>
+        <pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Connect"],
+      "Resource": "arn:aws:iot:us-east-1:ACCOUNT_ID:client/capteurlamp1Client"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Publish"],
+      "Resource": "arn:aws:iot:us-east-1:ACCOUNT_ID:topic/lamp/temp"
+    }
+  ]
+}</code></pre>
+        <p>Cliquer sur :</p>
+        <pre><code>Créer</code></pre>
+        <p>Puis revenir dans l’assistant de création du Thing. Sélectionner la policy :</p>
+        <pre><code>Lab08PolicyCapteurLamp</code></pre>
+        <p>Cliquer sur :</p>
+        <pre><code>Créer l’objet</code></pre>
+      </div>
+    </section>
+
+    <section id="partie-d" class="section">
+      <div class="section-title"><span class="badge">D</span><h2>Vérification AWS</h2></div>
+      <div class="step">
+        <h3>Étape 6 — Vérifier que tout est attaché</h3>
+        <p>Dans AWS IoT Core :</p>
+        <pre><code>Gérer
+→ Tous les appareils
+→ Objets / Things
+→ capteurlamp1</code></pre>
+        <p>Vérifier que le Thing existe. Ensuite aller dans :</p>
+        <pre><code>Sécurité
+→ Certificats</code></pre>
+        <p>Le certificat doit être :</p>
+        <pre><code>ACTIVE</code></pre>
+        <p>Et il doit être attaché à :</p>
+        <pre><code>capteurlamp1</code></pre>
+      </div>
+    </section>
+
+    <section id="partie-e" class="section">
+      <div class="section-title"><span class="badge">E</span><h2>Récupérer l’endpoint AWS IoT</h2></div>
+      <div class="step">
+        <p>Dans le menu gauche :</p>
+        <pre><code>Paramètres / Settings</code></pre>
+        <p>Chercher :</p>
+        <pre><code>Point de terminaison de données d’appareil</code></pre>
+        <p>Copier une adresse qui ressemble à :</p>
+        <pre><code>xxxxxxxxxxxxxx-ats.iot.us-east-1.amazonaws.com</code></pre>
+        <div class="important">Garde cette adresse. Elle sera utilisée dans le fichier Python.</div>
+      </div>
+    </section>
+
+    <section id="partie-f" class="section">
+      <div class="section-title"><span class="badge">F</span><h2>Préparer Windows</h2></div>
+      <div class="step">
+        <h3>Étape 7 — Créer le dossier du TP</h3>
+        <p>Ouvrir PowerShell et taper :</p>
+        <pre><code>mkdir C:\LAB08
+mkdir C:\LAB08\certs
+mkdir C:\LAB08\scripts
+mkdir C:\LAB08\config
+mkdir C:\LAB08\logs</code></pre>
+      </div>
+      <div class="step">
+        <h3>Étape 8 — Copier les certificats</h3>
+        <p>Copier les fichiers téléchargés dans :</p>
+        <pre><code>C:\LAB08\certs</code></pre>
+        <p>Renommer les fichiers comme ceci :</p>
+        <pre><code>AmazonRootCA1.pem
+certificate.pem.crt
+private.pem.key
+public.pem.key</code></pre>
+        <p>À la fin, le dossier doit contenir :</p>
+        <pre><code>C:\LAB08\certs\
+│
+├── AmazonRootCA1.pem
+├── certificate.pem.crt
+├── private.pem.key
+└── public.pem.key</code></pre>
+      </div>
+    </section>
+
+    <section id="partie-g" class="section">
+      <div class="section-title"><span class="badge">G</span><h2>Installer Python</h2></div>
+      <div class="step">
+        <h3>Étape 9 — Vérifier Python</h3>
+        <p>Dans PowerShell :</p>
+        <pre><code>python --version</code></pre>
+        <p>Puis :</p>
+        <pre><code>pip --version</code></pre>
+        <p>Installer le SDK AWS IoT :</p>
+        <pre><code>pip install awsiotsdk</code></pre>
+        <p>Tester :</p>
+        <pre><code>python -c "import awsiot; print('AWS IoT SDK OK')"</code></pre>
+        <p>Résultat attendu :</p>
+        <pre><code>AWS IoT SDK OK</code></pre>
+      </div>
+    </section>
+
+    <section id="partie-h" class="section">
+      <div class="section-title"><span class="badge">H</span><h2>Créer le fichier de configuration</h2></div>
+      <div class="step">
+        <h3>Étape 10 — Créer config.json</h3>
+        <p>Dans PowerShell :</p>
+        <pre><code>notepad C:\LAB08\config\config.json</code></pre>
+        <p>Windows demande : <strong>Voulez-vous créer le fichier ?</strong> Cliquer sur <strong>Oui</strong>.</p>
+        <p>Coller ce contenu. Remplacer <code class="inline">TON_ENDPOINT_AWS</code> par ton endpoint réel.</p>
+        <pre><code>{
+  "endpoint": "TON_ENDPOINT_AWS",
+  "port": 8883,
+  "client_id": "capteurlamp1Client",
+  "topic": "lamp/temp",
+  "root_ca": "certs/AmazonRootCA1.pem",
+  "certificate": "certs/certificate.pem.crt",
+  "private_key": "certs/private.pem.key"
+}</code></pre>
+        <p>Exemple :</p>
+        <pre><code>{
+  "endpoint": "xxxxxxxxxxxxxx-ats.iot.us-east-1.amazonaws.com",
+  "port": 8883,
+  "client_id": "capteurlamp1Client",
+  "topic": "lamp/temp",
+  "root_ca": "certs/AmazonRootCA1.pem",
+  "certificate": "certs/certificate.pem.crt",
+  "private_key": "certs/private.pem.key"
+}</code></pre>
+        <p>Enregistrer avec :</p>
+        <pre><code>Ctrl + S</code></pre>
+        <p>Fermer Notepad.</p>
+      </div>
+    </section>
+
+    <section id="partie-i" class="section">
+      <div class="section-title"><span class="badge">I</span><h2>Créer le script du capteur</h2></div>
+      <div class="step">
+        <h3>Étape 11 — Créer start.py</h3>
+        <p>Dans PowerShell :</p>
+        <pre><code>notepad C:\LAB08\scripts\start.py</code></pre>
+        <p>Cliquer sur <strong>Oui</strong>, puis coller ce code :</p>
+        <pre><code>from awscrt import mqtt
+from awsiot import mqtt_connection_builder
+import json
+import random
+import time
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(BASE_DIR, "config", "config.json")
+
+with open(CONFIG_PATH, "r") as f:
+    config = json.load(f)
+
+endpoint = config["endpoint"]
+client_id = config["client_id"]
+topic = config["topic"]
+
+root_ca = os.path.join(BASE_DIR, config["root_ca"])
+certificate = os.path.join(BASE_DIR, config["certificate"])
+private_key = os.path.join(BASE_DIR, config["private_key"])
+
+print("====================================")
+print(" LAB 08 - CAPTEUR IOT AWS")
+print("====================================")
+print("Endpoint :", endpoint)
+print("ClientID :", client_id)
+print("Topic    :", topic)
+print("====================================")
+
+mqtt_connection = mqtt_connection_builder.mtls_from_path(
+    endpoint=endpoint,
+    cert_filepath=certificate,
+    pri_key_filepath=private_key,
+    ca_filepath=root_ca,
+    client_id=client_id,
+    clean_session=False,
+    keep_alive_secs=30
+)
+
+print("[1] Connexion a AWS IoT Core...")
+
+try:
+    connect_future = mqtt_connection.connect()
+    connect_future.result()
+    print("[OK] Connexion reussie.")
+except Exception as e:
+    print("[ERREUR] Connexion impossible.")
+    print(e)
+    exit(1)
+
+for i in range(10):
+    temperature = round(random.uniform(21.0, 27.0), 2)
+
+    message = {
+        "device": "capteurlamp1",
+        "temperature": temperature,
+        "unit": "C",
+        "message_number": i + 1
+    }
+
+    payload = json.dumps(message)
+
+    mqtt_connection.publish(
+        topic=topic,
+        payload=payload,
+        qos=mqtt.QoS.AT_LEAST_ONCE
+    )
+
+    print("Message envoye :", payload)
+    time.sleep(2)
+
+disconnect_future = mqtt_connection.disconnect()
+disconnect_future.result()
+print("Deconnexion terminee.")</code></pre>
+        <p>Enregistrer avec <strong>Ctrl + S</strong>, puis fermer.</p>
+      </div>
+    </section>
+
+    <section id="partie-j" class="section">
+      <div class="section-title"><span class="badge">J</span><h2>Tester avec AWS MQTT Test Client</h2></div>
+      <div class="step">
+        <h3>Étape 12 — Ouvrir le client MQTT AWS</h3>
+        <p>Dans AWS IoT Core, menu gauche :</p>
+        <pre><code>Tester
+→ Client de test MQTT</code></pre>
+        <p>Cliquer sur :</p>
+        <pre><code>S’abonner à une rubrique</code></pre>
+        <p>Topic :</p>
+        <pre><code>lamp/temp</code></pre>
+        <p>Cliquer sur :</p>
+        <pre><code>S’abonner</code></pre>
+      </div>
+      <div class="step">
+        <h3>Étape 13 — Lancer le capteur</h3>
+        <p>Dans PowerShell :</p>
+        <pre><code>cd C:\LAB08
+python scripts\start.py</code></pre>
+        <p>Résultat attendu dans PowerShell :</p>
+        <pre><code>[OK] Connexion reussie.
+Message envoye : {"device": "capteurlamp1", "temperature": 24.5, "unit": "C"}</code></pre>
+        <div class="result">Dans AWS MQTT Test Client, tu dois voir les messages arriver.</div>
+      </div>
+    </section>
+
+    <section id="partie-k" class="section">
+      <div class="section-title"><span class="badge">K</span><h2>Simulation d’attaque</h2></div>
+      <div class="step">
+        <h3>Étape 14 — Créer le dossier attaquant</h3>
+        <p>Dans PowerShell :</p>
+        <pre><code>mkdir C:\LAB08_ATTACKER
+mkdir C:\LAB08_ATTACKER\certs
+mkdir C:\LAB08_ATTACKER\scripts
+mkdir C:\LAB08_ATTACKER\config</code></pre>
+        <p>Copier les mêmes certificats de :</p>
+        <pre><code>C:\LAB08\certs</code></pre>
+        <p>vers :</p>
+        <pre><code>C:\LAB08_ATTACKER\certs</code></pre>
+      </div>
+
+      <div class="step">
+        <h3>Étape 15 — Créer le config de l’attaquant</h3>
+        <pre><code>notepad C:\LAB08_ATTACKER\config\config.json</code></pre>
+        <p>Coller le même contenu que précédemment :</p>
+        <pre><code>{
+  "endpoint": "TON_ENDPOINT_AWS",
+  "port": 8883,
+  "client_id": "capteurlamp1Client",
+  "topic": "lamp/temp",
+  "root_ca": "certs/AmazonRootCA1.pem",
+  "certificate": "certs/certificate.pem.crt",
+  "private_key": "certs/private.pem.key"
+}</code></pre>
+      </div>
+
+      <div class="step">
+        <h3>Étape 16 — Créer attacker.py</h3>
+        <pre><code>notepad C:\LAB08_ATTACKER\scripts\attacker.py</code></pre>
+        <p>Coller :</p>
+        <pre><code>from awscrt import mqtt
+from awsiot import mqtt_connection_builder
+import json
+import time
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(BASE_DIR, "config", "config.json")
+
+with open(CONFIG_PATH, "r") as f:
+    config = json.load(f)
+
+endpoint = config["endpoint"]
+client_id = config["client_id"]
+topic = config["topic"]
+
+root_ca = os.path.join(BASE_DIR, config["root_ca"])
+certificate = os.path.join(BASE_DIR, config["certificate"])
+private_key = os.path.join(BASE_DIR, config["private_key"])
+
+print("====================================")
+print(" SIMULATION ATTAQUE IOT")
+print("====================================")
+
+mqtt_connection = mqtt_connection_builder.mtls_from_path(
+    endpoint=endpoint,
+    cert_filepath=certificate,
+    pri_key_filepath=private_key,
+    ca_filepath=root_ca,
+    client_id=client_id,
+    clean_session=False,
+    keep_alive_secs=30
+)
+
+print("[1] Connexion attaquant...")
+
+try:
+    connect_future = mqtt_connection.connect()
+    connect_future.result()
+    print("[OK] Attaquant connecte.")
+except Exception as e:
+    print("[ERREUR] Connexion impossible.")
+    print(e)
+    exit(1)
+
+for i in range(5):
+    message = {
+        "device": "capteurlamp1",
+        "temperature": -99.99,
+        "unit": "C",
+        "attack": True
+    }
+
+    payload = json.dumps(message)
+
+    mqtt_connection.publish(
+        topic=topic,
+        payload=payload,
+        qos=mqtt.QoS.AT_LEAST_ONCE
+    )
+
+    print("Attaque envoyee :", payload)
+    time.sleep(1)
+
+disconnect_future = mqtt_connection.disconnect()
+disconnect_future.result()
+print("Fin de l'attaque.")</code></pre>
+      </div>
+
+      <div class="step">
+        <h3>Étape 17 — Lancer l’attaque</h3>
+        <p>Dans PowerShell :</p>
+        <pre><code>cd C:\LAB08_ATTACKER
+python scripts\attacker.py</code></pre>
+        <p>Dans AWS MQTT Test Client, tu dois voir :</p>
+        <pre><code>{
+  "device": "capteurlamp1",
+  "temperature": -99.99,
+  "unit": "C",
+  "attack": true
+}</code></pre>
+        <div class="important"><strong>Conclusion :</strong> l’attaque fonctionne parce que l’attaquant possède les mêmes certificats et le même client ID. AWS croit qu’il s’agit du vrai capteur.</div>
+      </div>
+    </section>
+
+    <section class="checklist">
+      <h2>Checklist de réussite</h2>
+      <div class="grid">
+        <div class="mini-card">Région AWS : <strong>us-east-1</strong></div>
+        <div class="mini-card">Thing créé : <strong>capteurlamp1</strong></div>
+        <div class="mini-card">Certificat : <strong>ACTIVE</strong></div>
+        <div class="mini-card">Policy attachée : <strong>Lab08PolicyCapteurLamp</strong></div>
+        <div class="mini-card">Endpoint copié dans <strong>config.json</strong></div>
+        <div class="mini-card">SDK installé : <strong>awsiotsdk</strong></div>
+        <div class="mini-card">Topic AWS : <strong>lamp/temp</strong></div>
+        <div class="mini-card">Message d’attaque visible : <strong>-99.99 °C</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    LAB 02 — AWS IoT Core | Pr. Azeddine KHIAT - HESTIM
+  </footer>
+</body>
+</html>
